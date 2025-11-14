@@ -2,12 +2,12 @@
 ## Created by Eucarida 2025-11-14
 ## Last dited by Eucarida 2025-11-14
 
-# clean work space
+# clean work space ####
 rm(list = ls())
 gc()
 
 
-# load libraries (general)
+# load libraries (general) ####
 library(ggplot2)
 library(performance)
 library(GGally)
@@ -17,8 +17,12 @@ library(gtable)
 library(tidyverse)
 
 
-# read in data
+# read in data ####
+df_sheets <- read_csv("Baking_sheets_weight.csv")
 
+
+# taking the mean of sheet weight ####
+sheet_mean <- mean(df_sheets$weight) # 0.313875 grams
 
 
 
