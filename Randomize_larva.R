@@ -49,7 +49,7 @@ assignments <- groups %>%
 # View full randomized assignment
 assignments
 
-write.csv(assignments, "random_order.csv")
+write.csv(assignments, "random_order1-100.csv")
 
 
 
