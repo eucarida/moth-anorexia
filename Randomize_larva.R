@@ -11,6 +11,7 @@ rm(list = ls())
 library(boot)
 library(brms)
 library(tidyverse)
+library(readr)
 
 
 
@@ -49,8 +50,12 @@ assignments <- groups %>%
 # View full randomized assignment
 assignments
 
-write.csv(assignments, "random_order1-100.csv")
 
+# Lucs version
+# write.csv(assignments, "random_order-100.csv")
+
+# alternative version (make sure to make a new file name every time)
+write_csv(assignments, "test.csv", col_names = TRUE, append = TRUE)
 
 
 
