@@ -3,7 +3,7 @@
 # Script by Luc Bussiere
 # 
 # created Nov 14, 2025
-# last modified Nov 14, 2025
+# last modified Nov 15, 2025 (by Olof Heyman)
 
 rm(list = ls())
 
@@ -54,10 +54,13 @@ assignments
 # Lucs version
 # write.csv(assignments, "random_order-100.csv")
 
+
+# REMEMBER!!!!!
 # alternative version (make sure to make a new file name every time)
-write_csv(assignments, "test.csv", col_names = TRUE, append = TRUE)
+# The append = TRUE line is to not write over importat .csv making them only a shot edit from restoration.
+write_csv(assignments, "random_order901_1000.csv", col_names = TRUE, append = TRUE)
 
-
+# Now rename the file in the line above to something different so that it is not made weird
 
 
 
