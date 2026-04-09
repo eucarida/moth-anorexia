@@ -1,7 +1,7 @@
 # This script is the main script for my statistical analisys of my bachelors thesis 
 # By: eucarida
 # Created: 2026-03-08
-# Last updated: 2026-04-03
+# Last updated: 2026-04-09
 
 # clean
 rm(list = ls())
@@ -104,7 +104,8 @@ df_moth_wrangel_WF %>%
 # poop is worse
 # REMOVING BAD VALUE:
 df_moth_wrangel_WF <- df_moth_wrangel_WF %>%
-  filter(Food_Weight_Diff >= 0)
+  filter(Food_Weight_Diff >= 0,
+         Food_Weight_Diff <= 5000)
 
 ## This is solved forgot to remove NA from initial food weight ##
 ## there was nothing wrong with the program/code, I'm just stupid ##
@@ -132,11 +133,144 @@ df_moth_wrangel_WF <- df_moth_wrangel_WF %>%
 
 # plot
 df_moth_wrangel_WF %>% 
-  ggplot(aes(x = Dose,
-         y = Food_Weight_Diff_Mean)) +
-  geom_col()
+  ggplot(aes(x = Food_Weight_Diff, y = Larval_wt,
+             colour = Diet)) +
+  geom_point() +
+  facet_grid(. ~ Dose)
 
-# brms ####
+df_moth_wrangel_WF %>% 
+  ggplot(aes(x = Diet, y = Food_Weight_Diff,
+             colour = Dose)) +
+  geom_point() +
+  geom_boxplot()+
+  ylim(0,1) +
+  facet_grid(. ~ Dose)
+
+# mean survival per for every sire
+df_wf_sire <- df_moth_wrangel_WF %>% 
+  select(SireID, Death_bin) %>% 
+  group_by(SireID, Death_bin) %>% 
+  count(SireID, name = "nr_offspring")
+
+# just checking that count does what i think it does
+df_temp <- df_moth_wrangel_WF %>% 
+  filter(SireID == 112)
+
+# death data and relations 
+df_wf_sire <- df_wf_sire%>% 
+  pivot_wider(values_from = nr_offspring,
+              names_from = Death_bin) %>% 
+  mutate(tot_offspring = Alive + Dead) %>% 
+  mutate(precent_alive = Alive / tot_offspring,
+         precent_dead = Dead / tot_offspring)
+
+#summarise and mean
+df_wf_sire %>% 
+  summarise(Survival_mean = mean(Alive))
+
+mean(x = df_wf_sire$Alive)
+# 60.15385 mean of ofspring alive
+
+# filter over mean survial
+df_moth_wrangel_WF %>% 
+  add_count(SireID, name = "nr_offspring") %>% 
+  filter(nr_offspring > 60.15385) %>% 
+  ggplot(aes(x = Food_Weight_Diff,
+             y = Larval_wt,
+             colour = Diet)) +
+  geom_point() +
+  facet_wrap(.~ Dose) +
+  labs(title = "Food consumed and the weigth of larva",
+       subtitle = "over mean of alive offspring from sire",
+       x = "Food consumed (g)",
+       y = "Larva weight (g)")
+  
+
+# no filter
+df_moth_wrangel_WF %>% 
+  # add_count(SireID, name = "nr_offspring") %>% 
+  # filter(nr_offspring > 60.15385) %>% 
+  ggplot(aes(x = Food_Weight_Diff,
+             y = Larval_wt)) +
+  geom_point() +
+  facet_wrap(.~ Dose) +
+  labs(title = "Food consumed and the weigth of larva",
+       x = "Food consumed (g)",
+       y = "Larva weight (g)")
+
+
+
+df_moth_wrangel_WF %>% 
+  ggplot(aes(x = Food_Weight_Diff,
+             y = Larval_wt)) +
+  geom_point() +
+  facet_grid(Death_bin ~ Dose) +
+  labs(title = "Food consumed and the weigth of larva",
+       x = "Food consumed (g)",
+       y = "Larva weight (g)")
+
+
+ df_moth_wrangel_WF %>% 
+   ggplot(aes(x = Dose,
+              y = Food_Weight_Diff,
+              fill = Death_bin)) +
+   geom_boxplot() 
+
+
+lm_moth_wf <- lm(Food_Weight_Diff ~ as_factor(Dose) + Death_bin + SireID,
+                 data = df_moth_wrangel_WF)
+
+
+check_model(lm_moth_wf)
+
+
+summary(lm_moth_wf)
+
+df_moth_wrangel_WF %>% 
+  group_by(SireID, Death_bin) %>%
+  add_count(Death_bin) %>% 
+  arrange(SireID) %>% 
+  pivot_wider(names_from = Death_bin,
+              values_from = n) %>% 
+  print.data.frame()
+
+
+# df_moth_wrangel_WF %>%
+#   group_by(SireID, Death_bin) %>%
+#   summarise(Nr_state = sum(Death_bin %in% c("Alive", "Dead")))
+ 
+
+# df_moth_wrangel_pre <- 
+df_moth_wrangel_WF %>% 
+  filter(SireID == "110b") %>% 
+  add_count()
+
+
+
+  # add_count(SireID, name = "tot_offspring") %>% 
+  # group_by(SireID, tot_offspring, Food_Weight_Diff) %>% 
+  # mutate(Percent_alive = sum(Death_bin %in% "Alive")/
+  #             tot_offspring) %>% 
+  # # print.data.frame()
+  # ggplot(aes(x = Food_Weight_Diff, 
+  #            y = Percent_alive)) +
+  # geom_point() +
+  # facet_wrap(.~ Death_bin)
+
+
+
+
+
+str(df_moth_wrangel_pre)
+
+
+
+
+
+
+
+
+# brms ##### 
 
 # remove the obs with no food wight
 df_moth_WF <- df_moth_raw %>% 
