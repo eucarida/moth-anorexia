@@ -1,7 +1,7 @@
 # This script is the main script for my statistical analisys of my bachelors thesis 
 # By: eucarida
 # Created: 2026-03-08
-# Last updated: 2026-04-09
+# Last updated: 2026-04-15
 
 # clean
 rm(list = ls())
@@ -90,6 +90,8 @@ df_moth_wrangel %>%
 
 # The once that where best in the controle is also the best across doses
 
+# WF ##############################################################
+
 # now filtering out so thet we are only looking at the weiged food data
   df_moth_wrangel_WF <- df_moth_wrangel %>% 
     filter(FoodWeighing == "Yes",
@@ -106,6 +108,9 @@ df_moth_wrangel_WF %>%
 df_moth_wrangel_WF <- df_moth_wrangel_WF %>%
   filter(Food_Weight_Diff >= 0,
          Food_Weight_Diff <= 5000)
+
+##############################################################333
+
 
 ## This is solved forgot to remove NA from initial food weight ##
 ## there was nothing wrong with the program/code, I'm just stupid ##
@@ -131,6 +136,66 @@ df_moth_wrangel_WF <- df_moth_wrangel_WF %>%
 # 
 # setdiff(df_temp3,df_temp2)
 
+# WF: more wrangeling ##############################################
+
+# remove usless coloums (to do)
+df_moth_wrangel_WF %>% 
+  select(!Notes)
+ 
+# add the diet-dose combind coloum
+df_moth_wrangel_WF %>% 
+  mutate(Diet_Dose = Diet & Dose) %>% 
+  summarize(Diet_Dose)
+
+
+
+# creat percent of dead alive and dead indeviduals #################
+
+
+### trying it with Sire-Dose ****
+tib_death_percent <- df_moth_wrangel_WF %>% 
+  group_by(SireID, Dose, Diet) %>% 
+  summarize(tot_offspring = n(),
+            nr_dead_offspring = sum(Death_bin == "Dead"),
+            nr_alive_offspring = sum(Death_bin == "Alive"),
+            percent_alive = nr_alive_offspring / tot_offspring,
+            percent_dead = nr_dead_offspring / tot_offspring)
+
+
+
+# df_tibb2 join anorexia # # # # # # # # # # # # # # and then plot away
+
+
+# The differeance in food consumed in comparison to the control
+## the reson for useing the 1/16 is to have more data ponts
+## that are also more resoneble as many in the 1 dose are dead
+
+df_anorexia <- df_moth_wrangel_WF %>% 
+  group_by(SireID, Dose, Diet) %>% 
+  summarize(Mean_food_diff = mean(Food_Weight_Diff)) %>% 
+  pivot_wider(names_from = Dose,
+              values_from = Mean_food_diff) %>% 
+  mutate(anorexia = Control - `1/16`)
+
+
+df_anorexia_survival <- left_join(x = tib_death_percent,
+          y = df_anorexia)
+
+
+# ANOREXIA plot #############################################
+## basic 1.0 
+df_anorexia_survival %>%
+  ggplot(aes(x = anorexia,
+             y = percent_alive,
+             colour = SireID)) +
+  geom_point() +
+  facet_wrap(Diet ~ Dose) +
+  xlim(-0.25,0.25)
+
+## basic 1.1 (sd)
+
+#############################################################
+
 # plot
 df_moth_wrangel_WF %>% 
   ggplot(aes(x = Food_Weight_Diff, y = Larval_wt,
@@ -145,6 +210,7 @@ df_moth_wrangel_WF %>%
   geom_boxplot()+
   ylim(0,1) +
   facet_grid(. ~ Dose)
+
 
 # mean survival per for every sire
 df_wf_sire <- df_moth_wrangel_WF %>% 
@@ -164,12 +230,14 @@ df_wf_sire <- df_wf_sire%>%
   mutate(precent_alive = Alive / tot_offspring,
          precent_dead = Dead / tot_offspring)
 
-#summarise and mean
+
+# summarise and mean
 df_wf_sire %>% 
   summarise(Survival_mean = mean(Alive))
 
 mean(x = df_wf_sire$Alive)
 # 60.15385 mean of ofspring alive
+
 
 # filter over mean survial
 df_moth_wrangel_WF %>% 
@@ -215,8 +283,11 @@ df_moth_wrangel_WF %>%
               y = Food_Weight_Diff,
               fill = Death_bin)) +
    geom_boxplot() 
-
-
+#############################################################
+ 
+ 
+ 
+# lm modles ####
 lm_moth_wf <- lm(Food_Weight_Diff ~ as_factor(Dose) + Death_bin + SireID,
                  data = df_moth_wrangel_WF)
 
