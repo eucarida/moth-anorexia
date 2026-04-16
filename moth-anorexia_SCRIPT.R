@@ -182,6 +182,19 @@ df_anorexia_survival <- left_join(x = tib_death_percent,
           y = df_anorexia)
 
 
+## how is anorexia in the 1 dose
+
+df_anorexia_1 <- df_moth_wrangel_WF %>% 
+  group_by(SireID, Dose, Diet) %>% 
+  summarize(Mean_food_diff = mean(Food_Weight_Diff)) %>% 
+  pivot_wider(names_from = Dose,
+              values_from = Mean_food_diff) %>% 
+  mutate(anorexia = Control - `1`)
+
+df_anorexia_survival_1 <- left_join(x = tib_death_percent,
+                                  y = df_anorexia_1)
+
+
 # ANOREXIA plot #############################################
 ## basic 1.0 
 df_anorexia_survival %>%
@@ -192,11 +205,86 @@ df_anorexia_survival %>%
   facet_wrap(Diet ~ Dose) +
   xlim(-0.25,0.25)
 
-## basic 1.1 (sd)
+## basic 1.1 
+df_anorexia_survival_1 %>%
+  ggplot(aes(x = anorexia,
+             y = percent_alive,
+             colour = SireID)) +
+  geom_point() +
+  facet_wrap(Diet ~ Dose) +
+  xlim(-0.25,0.25)
+
+## interesting note is that even in comparison to the 1 dose anorexia is never expressed over all
+
+
+# ANOREXIA AND DEV TIME #####################################
+
+## changing nonsensical dates into NA
+df_moth_wrangel_WF <- df_moth_wrangel_WF %>% 
+  mutate(PupalDevTime = as.numeric(PupalDevTime),
+         PupalDevTime = if_else(PupalDevTime == "0", 
+                                true = NA,
+                                false = PupalDevTime,
+                                missing = NA),
+         PupalDevTime = if_else(PupalDevTime > 20,
+                                true = NA,
+                                false = PupalDevTime,
+                                missing = NA),
+         PupalDevTime = if_else(PupalDevTime < 0,
+                                true = NA,
+                                false = PupalDevTime,
+                                missing = NA))
+
+str(df_moth_wrangel_WF)  
+df_moth_wrangel_WF %>% 
+  count(PupalDevTime)
+
+##  tib the mean dev time for dose, diet and SireID
+
+df_anorexia_devtime <- df_moth_wrangel_WF %>% 
+  group_by(SireID, Dose, Diet, PupalDevTime) %>% 
+  summarize(Mean_food_diff = mean(Food_Weight_Diff),
+            Mean_dev_time = mean(PupalDevTime, na.rm = TRUE)) %>% 
+  pivot_wider(names_from = Dose,
+              values_from = Mean_food_diff) %>% 
+  mutate(anorexia = Control - `1/16`)
+
+df_anorexia_devtime_percent <- left_join(x = tib_death_percent,
+                                         y = df_anorexia_devtime)
+
+
+df_anorexia_devtime_percent %>% 
+  ggplot(aes(x = anorexia,
+             y = Mean_dev_time)) +
+  geom_point() +
+  facet_wrap(Diet ~ Dose)
+
+
+# ANOREXIA X LARVAL WEIGHT ##################################
+## tib the mean larval weight [NOT WORKING]
+df_anorexia_lweight <- df_moth_wrangel_WF %>% 
+  group_by(SireID, Dose, Diet) %>% 
+  summarize(Mean_food_diff = mean(Food_Weight_Diff),
+            Mean_larval_weight = mean(Larval_wt, na.rm = TRUE)) %>% 
+  pivot_wider(names_from = Dose,
+              values_from = Mean_food_diff) %>% 
+  mutate(anorexia = Control - `1/16`)
+
+
+df_moth_wrangel_WF %>% 
+  group_by(SireID, Dose, Diet) %>% 
+  summarize(Mean_larval_weight = mean(Larval_wt, na.rm = TRUE))
+
+df_anorexia_lweight_percent <- left_join(x = tib_death_percent,
+                                         y = df_anorexia_lweight)
+
+df_anorexia_lweight_percent %>%
+  ggplot(aes(x = anorexia,
+             y = Mean_larval_weight)) +
+  geom_point()
 
 #############################################################
-
-# plot
+# plot (bad stuff, clean later)
 df_moth_wrangel_WF %>% 
   ggplot(aes(x = Food_Weight_Diff, y = Larval_wt,
              colour = Diet)) +
