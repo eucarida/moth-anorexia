@@ -260,6 +260,8 @@ df_anorexia_devtime_percent %>%
   facet_wrap(Diet ~ Dose)
 
 
+
+
 # ANOREXIA X LARVAL WEIGHT ##################################
 ## tib the mean larval weight [NOT WORKING]
 df_anorexia_lweight <- df_moth_wrangel_WF %>% 
