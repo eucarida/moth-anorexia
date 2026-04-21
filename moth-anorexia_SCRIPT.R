@@ -193,6 +193,7 @@ df_anorexia_1 <- df_moth_wrangel_WF %>%
 
 df_anorexia_survival_1 <- left_join(x = tib_death_percent,
                                   y = df_anorexia_1)
+## interesting note is that even in comparison to the 1 dose anorexia is never expressed over all
 
 ## adding sex as a factor
 df_anorexia_sex <- df_moth_wrangel_WF %>% 
@@ -233,9 +234,66 @@ df_anorexia_survival_sex %>%
              colour = SireID)) +
   geom_point() +
   facet_grid(Diet ~ Dose ~ Pupal_sex) +
-  abline(v = 0)
+  xlim(-0.4,0.4)
 
-## interesting note is that even in comparison to the 1 dose anorexia is never expressed over all
+
+
+df_anorexia_survival_sex %>% 
+  filter(Pupal_sex == c("F", "M")) %>% 
+  ggplot(aes(x = anorexia,
+             y = percent_alive,
+             colour = SireID)) +
+  geom_point() +
+  facet_grid(Diet ~ Pupal_sex) +
+  xlim(-0.4,0.4)
+
+# PUPAL SURVIVAL PROB #######################################
+
+# my data
+tib_pupal_survival <- df_moth_wrangel_WF %>% 
+  filter(!is.na(Pupation_date)) %>%
+  group_by(SireID, Dose, Diet) %>% 
+  summarize(tot_pupa = n(),
+            nr_pupa_survival = sum(Death_bin == "Alive"),
+            nr_pupa_died = sum(Death_bin == "Dead"),
+            percent_pupa_survival = nr_pupa_survival / tot_pupa,
+            percent_pupa_died = nr_pupa_died / tot_pupa)
+
+tib_pupal_survival %>% 
+  ggplot(aes(x = SireID,
+             y = percent_pupa_survival,
+             colour = SireID)) +
+  geom_point() +
+  facet_wrap(Diet ~ Dose) +
+  ylim(0,1) +
+  theme(axis.text.x = element_text(angle = 90,
+                                   vjust = 0.5))
+# independent of treatment and diet, if you make...
+# it to the pupal stage their is a high probability of survival to adult hood.
+
+# all data
+tib_pupal_survival_v2 <- df_moth_wrangel %>% 
+  filter(!is.na(Pupation_date)) %>%
+  group_by(SireID, Dose, Diet) %>% 
+  summarize(tot_pupa = n(),
+            nr_pupa_survival = sum(Death_bin == "Alive"),
+            nr_pupa_died = sum(Death_bin == "Dead"),
+            percent_pupa_survival = nr_pupa_survival / tot_pupa,
+            percent_pupa_died = nr_pupa_died / tot_pupa)
+
+tib_pupal_survival_v2 %>% 
+  ggplot(aes(x = SireID,
+             y = percent_pupa_survival,
+             colour = SireID)) +
+  geom_point() +
+  facet_wrap(Diet ~ Dose) +
+  ylim(0,1) +
+  theme(axis.text.x = element_text(angle = 90,
+                                   vjust = 0.5))
+
+# even with all obcervations pressent
+
+
 
 
 # ANOREXIA AND DEV TIME #####################################
@@ -314,7 +372,7 @@ df_anorexia_lweight_percent %>%
   geom_point()
 
 #############################################################
-# plot (bad stuff, clean later)
+# plot (bad stuff, clean later) #############################
 df_moth_wrangel_WF %>% 
   ggplot(aes(x = Food_Weight_Diff, y = Larval_wt,
              colour = Diet)) +
