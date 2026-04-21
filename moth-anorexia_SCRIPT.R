@@ -1,7 +1,7 @@
 # This script is the main script for my statistical analisys of my bachelors thesis 
 # By: eucarida
 # Created: 2026-03-08
-# Last updated: 2026-04-15
+# Last updated: 2026-04-20
 
 # clean
 rm(list = ls())
@@ -194,9 +194,20 @@ df_anorexia_1 <- df_moth_wrangel_WF %>%
 df_anorexia_survival_1 <- left_join(x = tib_death_percent,
                                   y = df_anorexia_1)
 
+## adding sex as a factor
+df_anorexia_sex <- df_moth_wrangel_WF %>% 
+  group_by(SireID, Dose, Diet, Pupal_sex) %>% 
+  summarize(Mean_food_diff = mean(Food_Weight_Diff)) %>% 
+  pivot_wider(names_from = Dose,
+              values_from = Mean_food_diff) %>% 
+  mutate(anorexia = Control - `1/16`)
+
+
+df_anorexia_survival_sex <- left_join(x = tib_death_percent,
+                                  y = df_anorexia_sex)
 
 # ANOREXIA plot #############################################
-## basic 1.0 
+## basic 1.0 (STAR PLOT)
 df_anorexia_survival %>%
   ggplot(aes(x = anorexia,
              y = percent_alive,
@@ -213,6 +224,16 @@ df_anorexia_survival_1 %>%
   geom_point() +
   facet_wrap(Diet ~ Dose) +
   xlim(-0.25,0.25)
+
+## with pupa sex as another factor
+df_anorexia_survival_sex %>% 
+  filter(Pupal_sex == c("F", "M")) %>% 
+  ggplot(aes(x = anorexia,
+             y = percent_alive,
+             colour = SireID)) +
+  geom_point() +
+  facet_grid(Diet ~ Dose ~ Pupal_sex) +
+  abline(v = 0)
 
 ## interesting note is that even in comparison to the 1 dose anorexia is never expressed over all
 
@@ -242,22 +263,29 @@ df_moth_wrangel_WF %>%
 ##  tib the mean dev time for dose, diet and SireID
 
 df_anorexia_devtime <- df_moth_wrangel_WF %>% 
-  group_by(SireID, Dose, Diet, PupalDevTime) %>% 
+  group_by(SireID, Dose, Diet) %>% 
   summarize(Mean_food_diff = mean(Food_Weight_Diff),
             Mean_dev_time = mean(PupalDevTime, na.rm = TRUE)) %>% 
   pivot_wider(names_from = Dose,
               values_from = Mean_food_diff) %>% 
   mutate(anorexia = Control - `1/16`)
 
+df_moth_wrangel_WF %>% 
+  group_by(SireID, Dose, Diet) %>% 
+  summarize(Mean_food_diff = mean(Food_Weight_Diff)) %>% 
+  pivot_wider(names_from = Dose,
+              values_from = Mean_food_diff) %>% 
+  summarize(Mean)
+
+ 
+  group_by(SireID, Diet, Mean_dev_time, Control)
+  summarize(Infected = `1` + `1/16`)
+
 df_anorexia_devtime_percent <- left_join(x = tib_death_percent,
                                          y = df_anorexia_devtime)
 
 
-df_anorexia_devtime_percent %>% 
-  ggplot(aes(x = anorexia,
-             y = Mean_dev_time)) +
-  geom_point() +
-  facet_wrap(Diet ~ Dose)
+
 
 
 
@@ -267,15 +295,15 @@ df_anorexia_devtime_percent %>%
 df_anorexia_lweight <- df_moth_wrangel_WF %>% 
   group_by(SireID, Dose, Diet) %>% 
   summarize(Mean_food_diff = mean(Food_Weight_Diff),
-            Mean_larval_weight = mean(Larval_wt, na.rm = TRUE)) %>% 
+            Mean_larval_weight = mean(Larval_wt)) %>% 
   pivot_wider(names_from = Dose,
               values_from = Mean_food_diff) %>% 
   mutate(anorexia = Control - `1/16`)
 
 
-df_moth_wrangel_WF %>% 
-  group_by(SireID, Dose, Diet) %>% 
-  summarize(Mean_larval_weight = mean(Larval_wt, na.rm = TRUE))
+# df_moth_wrangel_WF %>% 
+#   group_by(SireID, Dose, Diet) %>% 
+#   summarize(Mean_larval_weight = mean(Larval_wt, na.rm = TRUE))
 
 df_anorexia_lweight_percent <- left_join(x = tib_death_percent,
                                          y = df_anorexia_lweight)
