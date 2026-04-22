@@ -16,12 +16,17 @@ library(gridExtra)
 library(grid)
 library(gtable)
 library(beeswarm)
-library(tidyverse)
+library(parallel)
 library(brms)
 library(bayesplot)
+library(tidyverse)
 
 # theme
 theme_set(theme_bw())
+
+
+# core
+num_cores <- detectCores()-1
 
 
 # load data 
@@ -106,10 +111,9 @@ df_moth_wrangel_WF %>%
 # poop is worse
 # REMOVING BAD VALUE:
 df_moth_wrangel_WF <- df_moth_wrangel_WF %>%
-  filter(Food_Weight_Diff >= 0,
-         Food_Weight_Diff <= 5000)
-
-##############################################################333
+  filter(Food_Weight_Diff <= 5000)
+# take back the less then 0 food difference #################
+#############################################################
 
 
 ## This is solved forgot to remove NA from initial food weight ##
@@ -176,7 +180,7 @@ df_anorexia <- df_moth_wrangel_WF %>%
   pivot_wider(names_from = Dose,
               values_from = Mean_food_diff) %>% 
   mutate(anorexia = Control - `1/16`)
-
+# NOTE THAT A POSETIVE VALUE IS EATING LESS COMPARED TO CONTROL #
 
 df_anorexia_survival <- left_join(x = tib_death_percent,
           y = df_anorexia)
@@ -184,68 +188,120 @@ df_anorexia_survival <- left_join(x = tib_death_percent,
 
 ## how is anorexia in the 1 dose
 
-df_anorexia_1 <- df_moth_wrangel_WF %>% 
-  group_by(SireID, Dose, Diet) %>% 
-  summarize(Mean_food_diff = mean(Food_Weight_Diff)) %>% 
-  pivot_wider(names_from = Dose,
-              values_from = Mean_food_diff) %>% 
-  mutate(anorexia = Control - `1`)
-
-df_anorexia_survival_1 <- left_join(x = tib_death_percent,
-                                  y = df_anorexia_1)
+# df_anorexia_1 <- df_moth_wrangel_WF %>% 
+#   group_by(SireID, Dose, Diet) %>% 
+#   summarize(Mean_food_diff = mean(Food_Weight_Diff)) %>% 
+#   pivot_wider(names_from = Dose,
+#               values_from = Mean_food_diff) %>% 
+#   mutate(anorexia = Control - `1`)
+# 
+# df_anorexia_survival_1 <- left_join(x = tib_death_percent,
+#                                   y = df_anorexia_1)
 ## interesting note is that even in comparison to the 1 dose anorexia is never expressed over all
 
 ## adding sex as a factor
-df_anorexia_sex <- df_moth_wrangel_WF %>% 
-  group_by(SireID, Dose, Diet, Pupal_sex) %>% 
-  summarize(Mean_food_diff = mean(Food_Weight_Diff)) %>% 
-  pivot_wider(names_from = Dose,
-              values_from = Mean_food_diff) %>% 
-  mutate(anorexia = Control - `1/16`)
-
-
-df_anorexia_survival_sex <- left_join(x = tib_death_percent,
-                                  y = df_anorexia_sex)
+# df_anorexia_sex <- df_moth_wrangel_WF %>% 
+#   group_by(SireID, Dose, Diet, Pupal_sex) %>% 
+#   summarize(Mean_food_diff = mean(Food_Weight_Diff)) %>% 
+#   pivot_wider(names_from = Dose,
+#               values_from = Mean_food_diff) %>% 
+#   mutate(anorexia = Control - `1/16`)
+# 
+# 
+# df_anorexia_survival_sex <- left_join(x = tib_death_percent,
+#                                   y = df_anorexia_sex)
 
 # ANOREXIA plot #############################################
 ## basic 1.0 (STAR PLOT)
 df_anorexia_survival %>%
   ggplot(aes(x = anorexia,
              y = percent_alive,
-             colour = SireID)) +
-  geom_point() +
+             colour = SireID,
+             size = tot_offspring)) +
+  geom_point(alpha = 0.3) +
   facet_wrap(Diet ~ Dose) +
-  xlim(-0.25,0.25)
+  scale_size_area(max_size = 8)
+  # xlim(-0.25,0.25)
+
+
+# remove bad point (triple check sire 162: looks wired)
+# anorexia is not a good lable
+# size points on indeviduals in it 
+
+df_anorexia_survival %>% 
+  filter(SireID == "162") %>% 
+  print.data.frame()
+#there is only one in poor 1 and it died
+
+df_moth_wrangel_WF %>% 
+  filter(SireID == "162") %>% 
+  group_by(Larval_wt, Dose, Diet) %>% 
+  select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
+  arrange(desc(Food_Weight_Diff))
+
+
+df_moth_wrangel_WF %>% 
+  # filter(SireID == "162") %>% 
+  group_by(Larval_wt) %>% 
+  select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
+  arrange(desc(Food_Weight_Diff))
+
+df_moth_wrangel_WF %>% 
+  group_by(SireID) %>% 
+  summarize(Mean_food_diff = mean(Food_Weight_Diff))
+
+
+df_moth_wrangel_WF %>% 
+  group_by(SireID, Dose, Diet) %>% 
+  filter(SireID == "162") %>% 
+  summarize(Mean_food_diff = mean(Food_Weight_Diff))
+
+
+df_moth_wrangel_WF %>% 
+  group_by(SireID, Dose, Diet) %>% 
+  filter(SireID == "162") %>% 
+  summarize(Mean_food_diff = mean(Food_Weight_Diff)) %>% 
+  pivot_wider(names_from = Dose,
+              values_from = Mean_food_diff) %>% 
+  mutate(anorexia = Control - `1/16`)
+
+df_moth_wrangel_WF %>% 
+  filter(SireID == "162") %>%
+  group_by(LarvaID) %>% 
+  select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
+  arrange(desc(Food_Weight_Diff))
+
+
+df_moth_wrangel_WF %>% 
+  # filter(SireID == "162") %>%
+  group_by(LarvaID, Larval_wt) %>% 
+  select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
+  arrange(desc(Food_Weight_Diff))
+
+# CLEAN UP ABOVE AND FILTER OUT THE LarvaID 1555
+
 
 ## basic 1.1 
-df_anorexia_survival_1 %>%
-  ggplot(aes(x = anorexia,
-             y = percent_alive,
-             colour = SireID)) +
-  geom_point() +
-  facet_wrap(Diet ~ Dose) +
-  xlim(-0.25,0.25)
-
-## with pupa sex as another factor
-df_anorexia_survival_sex %>% 
-  filter(Pupal_sex == c("F", "M")) %>% 
-  ggplot(aes(x = anorexia,
-             y = percent_alive,
-             colour = SireID)) +
-  geom_point() +
-  facet_grid(Diet ~ Dose ~ Pupal_sex) +
-  xlim(-0.4,0.4)
+# df_anorexia_survival_1 %>%
+#   ggplot(aes(x = anorexia,
+#              y = percent_alive,
+#              colour = SireID)) +
+#   geom_point() +
+#   facet_wrap(Diet ~ Dose) +
+#   xlim(-0.25,0.25)
 
 
 
-df_anorexia_survival_sex %>% 
-  filter(Pupal_sex == c("F", "M")) %>% 
-  ggplot(aes(x = anorexia,
-             y = percent_alive,
-             colour = SireID)) +
-  geom_point() +
-  facet_grid(Diet ~ Pupal_sex) +
-  xlim(-0.4,0.4)
+## with pupa sex as another factor [not a valid comparison as Sex is only found in pupating indeviduals]
+# df_anorexia_survival_sex %>% 
+#   filter(Pupal_sex == c("F", "M")) %>% 
+#   ggplot(aes(x = anorexia,
+#              y = percent_alive,
+#              colour = SireID)) +
+#   geom_point() +
+#   facet_grid(Diet ~ Dose ~ Pupal_sex)
+
+
 
 # PUPAL SURVIVAL PROB #######################################
 
@@ -269,9 +325,10 @@ tib_pupal_survival %>%
   theme(axis.text.x = element_text(angle = 90,
                                    vjust = 0.5))
 # independent of treatment and diet, if you make...
-# it to the pupal stage their is a high probability of survival to adult hood.
+# it to the pupal stage their is a high probability...
+# of survival to adult hood.
 
-# all data
+# all data ##################################################
 tib_pupal_survival_v2 <- df_moth_wrangel %>% 
   filter(!is.na(Pupation_date)) %>%
   group_by(SireID, Dose, Diet) %>% 
@@ -320,31 +377,6 @@ df_moth_wrangel_WF %>%
 
 ##  tib the mean dev time for dose, diet and SireID
 
-df_anorexia_devtime <- df_moth_wrangel_WF %>% 
-  group_by(SireID, Dose, Diet) %>% 
-  summarize(Mean_food_diff = mean(Food_Weight_Diff),
-            Mean_dev_time = mean(PupalDevTime, na.rm = TRUE)) %>% 
-  pivot_wider(names_from = Dose,
-              values_from = Mean_food_diff) %>% 
-  mutate(anorexia = Control - `1/16`)
-
-df_moth_wrangel_WF %>% 
-  group_by(SireID, Dose, Diet) %>% 
-  summarize(Mean_food_diff = mean(Food_Weight_Diff)) %>% 
-  pivot_wider(names_from = Dose,
-              values_from = Mean_food_diff) %>% 
-  summarize(Mean)
-
- 
-  group_by(SireID, Diet, Mean_dev_time, Control)
-  summarize(Infected = `1` + `1/16`)
-
-df_anorexia_devtime_percent <- left_join(x = tib_death_percent,
-                                         y = df_anorexia_devtime)
-
-
-
-
 
 
 
@@ -372,20 +404,26 @@ df_anorexia_lweight_percent %>%
   geom_point()
 
 #############################################################
-# plot (bad stuff, clean later) #############################
-df_moth_wrangel_WF %>% 
-  ggplot(aes(x = Food_Weight_Diff, y = Larval_wt,
-             colour = Diet)) +
-  geom_point() +
-  facet_grid(. ~ Dose)
 
-df_moth_wrangel_WF %>% 
-  ggplot(aes(x = Diet, y = Food_Weight_Diff,
-             colour = Dose)) +
-  geom_point() +
-  geom_boxplot()+
-  ylim(0,1) +
-  facet_grid(. ~ Dose)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# plot (bad stuff, clean later) #############################
+
 
 
 # mean survival per for every sire
