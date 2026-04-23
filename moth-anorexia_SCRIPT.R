@@ -151,6 +151,62 @@ df_moth_wrangel_WF %>%
   mutate(Diet_Dose = Diet & Dose) %>% 
   summarize(Diet_Dose)
 
+# ANALYZING AND ACTING ON BAD VALUE #########################
+df_anorexia_survival %>% 
+  filter(SireID == "162") %>% 
+  print.data.frame()
+#there is only one in poor 1 and it died
+
+df_moth_wrangel_WF %>% 
+  filter(SireID == "162") %>% 
+  group_by(Larval_wt, Dose, Diet) %>% 
+  select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
+  arrange(desc(Food_Weight_Diff))
+
+
+df_moth_wrangel_WF %>% 
+  # filter(SireID == "162") %>% 
+  group_by(Larval_wt) %>% 
+  select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
+  arrange(desc(Food_Weight_Diff))
+
+df_moth_wrangel_WF %>% 
+  group_by(SireID) %>% 
+  summarize(Mean_food_diff = mean(Food_Weight_Diff))
+
+
+df_moth_wrangel_WF %>% 
+  group_by(SireID, Dose, Diet) %>% 
+  filter(SireID == "162") %>% 
+  summarize(Mean_food_diff = mean(Food_Weight_Diff))
+
+
+df_moth_wrangel_WF %>% 
+  group_by(SireID, Dose, Diet) %>% 
+  filter(SireID == "162") %>% 
+  summarize(Mean_food_diff = mean(Food_Weight_Diff)) %>% 
+  pivot_wider(names_from = Dose,
+              values_from = Mean_food_diff) %>% 
+  mutate(anorexia = Control - `1/16`)
+
+df_moth_wrangel_WF %>% 
+  filter(SireID == "162") %>%
+  group_by(LarvaID) %>% 
+  select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
+  arrange(desc(Food_Weight_Diff))
+
+
+df_moth_wrangel_WF %>% 
+  # filter(SireID == "162") %>%
+  group_by(LarvaID, Larval_wt) %>% 
+  select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
+  arrange(desc(Food_Weight_Diff))
+
+# CLEAN UP ABOVE AND FILTER OUT THE LarvaID 1555
+
+# removing larva 1555
+df_moth_wrangel_WF <- df_moth_wrangel_WF %>% 
+  filter(LarvaID != 1555)
 
 
 # creat percent of dead alive and dead indeviduals #################
@@ -219,66 +275,92 @@ df_anorexia_survival %>%
              colour = SireID,
              size = tot_offspring)) +
   geom_point(alpha = 0.3) +
+  geom_vline(xintercept = 0,
+             alpha = 0.3) +
   facet_wrap(Diet ~ Dose) +
-  scale_size_area(max_size = 8)
-  # xlim(-0.25,0.25)
+  scale_size_area(max_size = 8) +
+  theme(axis.text.x = element_text(angle = -45,
+                                   hjust = 0),
+        legend.direction = "vertical",
+        legend.box = "vertical") +
+  labs(title = str_wrap("Probobility of survivla when exposed 
+                        to a pathogen",
+                        width = 55),
+       subtitle = str_wrap("Depending on reduction in feeding
+                        for families of Helicoverpa, baced on dose and
+                        diet quality", width = 50),
+       # colour = guide_legend(ncol = 3, byrow = T),
+       size = "Number of indeviduals") +
+  guides(colour = guide_legend(ncol = 2, 
+                               byrow = T,
+                               order = 1)) +
+  ylab("Probobility of survival") +
+  xlab("Anorexia (Reduction in feeding is positive value)")
+  # xlim(-0.25,0.25)# xllegend()# xlim(-0.25,0.25)# xlim(-wrap()0.25,0.25)
 
 
 # remove bad point (triple check sire 162: looks wired)
 # anorexia is not a good lable
 # size points on indeviduals in it 
 
-df_anorexia_survival %>% 
-  filter(SireID == "162") %>% 
-  print.data.frame()
-#there is only one in poor 1 and it died
+# # ANALYZING AND ACTING ON BAD VALUE (origin) #########################
+# df_anorexia_survival %>% 
+#   filter(SireID == "162") %>% 
+#   print.data.frame()
+# #there is only one in poor 1 and it died
+# 
+# df_moth_wrangel_WF %>% 
+#   filter(SireID == "162") %>% 
+#   group_by(Larval_wt, Dose, Diet) %>% 
+#   select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
+#   arrange(desc(Food_Weight_Diff))
+# 
+# 
+# df_moth_wrangel_WF %>% 
+#   # filter(SireID == "162") %>% 
+#   group_by(Larval_wt) %>% 
+#   select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
+#   arrange(desc(Food_Weight_Diff))
+# 
+# df_moth_wrangel_WF %>% 
+#   group_by(SireID) %>% 
+#   summarize(Mean_food_diff = mean(Food_Weight_Diff))
+# 
+# 
+# df_moth_wrangel_WF %>% 
+#   group_by(SireID, Dose, Diet) %>% 
+#   filter(SireID == "162") %>% 
+#   summarize(Mean_food_diff = mean(Food_Weight_Diff))
+# 
+# 
+# df_moth_wrangel_WF %>% 
+#   group_by(SireID, Dose, Diet) %>% 
+#   filter(SireID == "162") %>% 
+#   summarize(Mean_food_diff = mean(Food_Weight_Diff)) %>% 
+#   pivot_wider(names_from = Dose,
+#               values_from = Mean_food_diff) %>% 
+#   mutate(anorexia = Control - `1/16`)
+# 
+# df_moth_wrangel_WF %>% 
+#   filter(SireID == "162") %>%
+#   group_by(LarvaID) %>% 
+#   select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
+#   arrange(desc(Food_Weight_Diff))
+# 
+# 
+# df_moth_wrangel_WF %>% 
+#   # filter(SireID == "162") %>%
+#   group_by(LarvaID, Larval_wt) %>% 
+#   select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
+#   arrange(desc(Food_Weight_Diff))
+# 
+# # CLEAN UP ABOVE AND FILTER OUT THE LarvaID 1555
+# 
+# # removing larva 1555
+# df_moth_wrangel_WF <- df_moth_wrangel_WF %>% 
+#   filter(LarvaID != 1555)
 
-df_moth_wrangel_WF %>% 
-  filter(SireID == "162") %>% 
-  group_by(Larval_wt, Dose, Diet) %>% 
-  select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
-  arrange(desc(Food_Weight_Diff))
 
-
-df_moth_wrangel_WF %>% 
-  # filter(SireID == "162") %>% 
-  group_by(Larval_wt) %>% 
-  select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
-  arrange(desc(Food_Weight_Diff))
-
-df_moth_wrangel_WF %>% 
-  group_by(SireID) %>% 
-  summarize(Mean_food_diff = mean(Food_Weight_Diff))
-
-
-df_moth_wrangel_WF %>% 
-  group_by(SireID, Dose, Diet) %>% 
-  filter(SireID == "162") %>% 
-  summarize(Mean_food_diff = mean(Food_Weight_Diff))
-
-
-df_moth_wrangel_WF %>% 
-  group_by(SireID, Dose, Diet) %>% 
-  filter(SireID == "162") %>% 
-  summarize(Mean_food_diff = mean(Food_Weight_Diff)) %>% 
-  pivot_wider(names_from = Dose,
-              values_from = Mean_food_diff) %>% 
-  mutate(anorexia = Control - `1/16`)
-
-df_moth_wrangel_WF %>% 
-  filter(SireID == "162") %>%
-  group_by(LarvaID) %>% 
-  select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
-  arrange(desc(Food_Weight_Diff))
-
-
-df_moth_wrangel_WF %>% 
-  # filter(SireID == "162") %>%
-  group_by(LarvaID, Larval_wt) %>% 
-  select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
-  arrange(desc(Food_Weight_Diff))
-
-# CLEAN UP ABOVE AND FILTER OUT THE LarvaID 1555
 
 
 ## basic 1.1 
