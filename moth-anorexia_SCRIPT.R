@@ -299,6 +299,22 @@ df_anorexia_survival %>%
   # xlim(-0.25,0.25)# xllegend()# xlim(-0.25,0.25)# xlim(-wrap()0.25,0.25)
 
 
+# BRMS MODELING #############################################
+
+df_brm_ready <- df_moth_wrangel_WF %>% 
+  unite(Dose, Diet, sep = "-", col = "treatment") 
+
+# need to make a time from final weighing to eclosion (pupation) so that i can pick a time frame to restrickt the data by
+brm_model_ch <- brm(Death_bin ~ treatment +
+                      (treatment - 1 | p | gr(SireID)) +
+                      (1 | DamID),
+                    data = df_brm_ready,
+                    family = bernoulli(),
+                    chains = 4, cores = num_cores)
+
+
+
+
 # remove bad point (triple check sire 162: looks wired)
 # anorexia is not a good lable
 # size points on indeviduals in it 
