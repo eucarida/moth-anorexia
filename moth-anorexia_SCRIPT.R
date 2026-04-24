@@ -1,7 +1,7 @@
 # This script is the main script for my statistical analisys of my bachelors thesis 
 # By: eucarida
 # Created: 2026-03-08
-# Last updated: 2026-04-20
+# Last updated: 2026-04-24
 
 # clean
 rm(list = ls())
@@ -317,6 +317,29 @@ df_brm_ready <- df_moth_wrangel_WF %>%
 plot(brm_model_ch)
 
 summary(brm_model_ch)
+
+# same model but the death bin is in binary instaid of charecters
+
+df_brm_ready_sbin<- df_brm_ready %>% 
+  mutate(Survival = if_else(Death_bin == "Alive",
+                            true = 1,
+                            false = 0,
+                            missing = NA)) 
+
+# brm_model_bin <- brm(Survival ~ treatment +
+#                        (treatment - 1 | p | gr(SireID)) +
+#                        (1 | DamID),
+#                      data = df_brm_ready_sbin,
+#                      family = bernoulli(),
+#                      chains = 4, cores = num_cores)
+
+plot(brm_model_bin) # it looks very similar to brm_model_ch
+
+summary(brm_model_bin) 
+# the summry is a bit different from brm_modle_ch...
+# maybe that is just becaus of how things ar sampled...
+# I sould ask about this at the next meeting
+
 
 # remove bad point (triple check sire 162: looks wired)
 # anorexia is not a good lable
