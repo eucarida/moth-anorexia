@@ -1,7 +1,7 @@
 # This script is the main script for my statistical analisys of my bachelors thesis 
 # By: eucarida
 # Created: 2026-03-08
-# Last updated: 2026-04-24
+# Last updated: 2026-04-25
 
 # clean
 rm(list = ls())
@@ -340,6 +340,34 @@ summary(brm_model_bin)
 # maybe that is just becaus of how things ar sampled...
 # I sould ask about this at the next meeting
 
+
+# BRM MODEL BOUND IN TIME ###################################
+
+# df_brm_ready_dayX
+
+
+df_brm_ready_day14 <- df_brm_ready_sbin %>% 
+  select(Food_change_1, Death_date, Inoculation_date) %>% 
+  mutate(Food_change_1 = dmy(Food_change_1),
+         Death_date = dmy(Death_date),
+         Inoculation_date = dmy(Inoculation_date),
+         Day_14_past_food = Food_change_1 + 14,
+         Day_14_past_food_bi = if_else(Death_date >= Day_14_past_food,
+                                       true = 1,
+                                       false = 0,
+                                       missing = 1),
+         Day_14_past_inoc = Inoculation_date + 14,
+         Day_14_past_inoc_bi = if_else(Death_date >= Day_14_past_inoc,
+                                       true = 1,
+                                       false = 0,
+                                       missing = 1))
+
+
+
+df_brm_ready_day14 %>% 
+  count(Day_14_past_inoc_bi, # 14 days after inoculation
+        Day_14_past_food_bi) # 14 days after first food change
+# Maka a new model using the new bound day values
 
 # remove bad point (triple check sire 162: looks wired)
 # anorexia is not a good lable
