@@ -152,55 +152,55 @@ df_moth_wrangel_WF %>%
   summarize(Diet_Dose)
 
 # ANALYZING AND ACTING ON BAD VALUE #########################
-df_anorexia_survival %>% 
-  filter(SireID == "162") %>% 
-  print.data.frame()
-#there is only one in poor 1 and it died
-
-df_moth_wrangel_WF %>% 
-  filter(SireID == "162") %>% 
-  group_by(Larval_wt, Dose, Diet) %>% 
-  select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
-  arrange(desc(Food_Weight_Diff))
-
-
-df_moth_wrangel_WF %>% 
-  # filter(SireID == "162") %>% 
-  group_by(Larval_wt) %>% 
-  select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
-  arrange(desc(Food_Weight_Diff))
-
-df_moth_wrangel_WF %>% 
-  group_by(SireID) %>% 
-  summarize(Mean_food_diff = mean(Food_Weight_Diff))
-
-
-df_moth_wrangel_WF %>% 
-  group_by(SireID, Dose, Diet) %>% 
-  filter(SireID == "162") %>% 
-  summarize(Mean_food_diff = mean(Food_Weight_Diff))
-
-
-df_moth_wrangel_WF %>% 
-  group_by(SireID, Dose, Diet) %>% 
-  filter(SireID == "162") %>% 
-  summarize(Mean_food_diff = mean(Food_Weight_Diff)) %>% 
-  pivot_wider(names_from = Dose,
-              values_from = Mean_food_diff) %>% 
-  mutate(anorexia = Control - `1/16`)
-
-df_moth_wrangel_WF %>% 
-  filter(SireID == "162") %>%
-  group_by(LarvaID) %>% 
-  select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
-  arrange(desc(Food_Weight_Diff))
-
-
-df_moth_wrangel_WF %>% 
-  # filter(SireID == "162") %>%
-  group_by(LarvaID, Larval_wt) %>% 
-  select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
-  arrange(desc(Food_Weight_Diff))
+# df_anorexia_survival %>% 
+#   filter(SireID == "162") %>% 
+#   print.data.frame()
+# #there is only one in poor 1 and it died
+# 
+# df_moth_wrangel_WF %>% 
+#   filter(SireID == "162") %>% 
+#   group_by(Larval_wt, Dose, Diet) %>% 
+#   select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
+#   arrange(desc(Food_Weight_Diff))
+# 
+# 
+# df_moth_wrangel_WF %>% 
+#   # filter(SireID == "162") %>% 
+#   group_by(Larval_wt) %>% 
+#   select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
+#   arrange(desc(Food_Weight_Diff))
+# 
+# df_moth_wrangel_WF %>% 
+#   group_by(SireID) %>% 
+#   summarize(Mean_food_diff = mean(Food_Weight_Diff))
+# 
+# 
+# df_moth_wrangel_WF %>% 
+#   group_by(SireID, Dose, Diet) %>% 
+#   filter(SireID == "162") %>% 
+#   summarize(Mean_food_diff = mean(Food_Weight_Diff))
+# 
+# 
+# df_moth_wrangel_WF %>% 
+#   group_by(SireID, Dose, Diet) %>% 
+#   filter(SireID == "162") %>% 
+#   summarize(Mean_food_diff = mean(Food_Weight_Diff)) %>% 
+#   pivot_wider(names_from = Dose,
+#               values_from = Mean_food_diff) %>% 
+#   mutate(anorexia = Control - `1/16`)
+# 
+# df_moth_wrangel_WF %>% 
+#   filter(SireID == "162") %>%
+#   group_by(LarvaID) %>% 
+#   select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
+#   arrange(desc(Food_Weight_Diff))
+# 
+# 
+# df_moth_wrangel_WF %>% 
+#   # filter(SireID == "162") %>%
+#   group_by(LarvaID, Larval_wt) %>% 
+#   select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
+#   arrange(desc(Food_Weight_Diff))
 
 # CLEAN UP ABOVE AND FILTER OUT THE LarvaID 1555
 
@@ -305,15 +305,18 @@ df_brm_ready <- df_moth_wrangel_WF %>%
   unite(Dose, Diet, sep = "-", col = "treatment") 
 
 # need to make a time from final weighing to eclosion (pupation) so that i can pick a time frame to restrickt the data by
-brm_model_ch <- brm(Death_bin ~ treatment +
-                      (treatment - 1 | p | gr(SireID)) +
-                      (1 | DamID),
-                    data = df_brm_ready,
-                    family = bernoulli(),
-                    chains = 4, cores = num_cores)
 
+# BRMS MODDEL with death bin in ch format
+# brm_model_ch <- brm(Death_bin ~ treatment +
+#                       (treatment - 1 | p | gr(SireID)) +
+#                       (1 | DamID),
+#                     data = df_brm_ready,
+#                     family = bernoulli(),
+#                     chains = 4, cores = num_cores)
 
+plot(brm_model_ch)
 
+summary(brm_model_ch)
 
 # remove bad point (triple check sire 162: looks wired)
 # anorexia is not a good lable
