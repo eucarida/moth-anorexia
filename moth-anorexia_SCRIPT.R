@@ -1,14 +1,14 @@
 # This script is the main script for my statistical analisys of my bachelors thesis 
 # By: eucarida
 # Created: 2026-03-08
-# Last updated: 2026-04-25
+# Last updated: 2026-04-28
 
 # clean
 rm(list = ls())
 gc()
 
 
-# load libraries (general) ####
+# 1. load libraries (general) ####
 library(ggplot2)
 library(performance)
 library(GGally)
@@ -19,6 +19,7 @@ library(beeswarm)
 library(parallel)
 library(brms)
 library(bayesplot)
+library(posterior)
 library(tidyverse)
 
 # theme
@@ -36,7 +37,7 @@ df_moth_raw <- read_csv("Moth_expt_Nov_2025_Fs_Larvae.csv")
 
 
 
-# simple tidy ####
+# 2. simple tidy ####
 
 df_moth_raw %>% 
   ggplot(aes(x = Pupal_sex, 
@@ -95,7 +96,7 @@ df_moth_wrangel %>%
 
 # The once that where best in the controle is also the best across doses
 
-# WF ##############################################################
+# 3. WF #####################################################
 
 # now filtering out so thet we are only looking at the weiged food data
   df_moth_wrangel_WF <- df_moth_wrangel %>% 
@@ -140,7 +141,7 @@ df_moth_wrangel_WF <- df_moth_wrangel_WF %>%
 # 
 # setdiff(df_temp3,df_temp2)
 
-# WF: more wrangeling ##############################################
+# WF: more wrangeling ###########################################
 
 # remove usless coloums (to do)
 df_moth_wrangel_WF %>% 
@@ -151,7 +152,7 @@ df_moth_wrangel_WF %>%
   mutate(Diet_Dose = Diet & Dose) %>% 
   summarize(Diet_Dose)
 
-# ANALYZING AND ACTING ON BAD VALUE #########################
+# 4. ANALYZING AND ACTING ON BAD VALUE ######################
 # df_anorexia_survival %>% 
 #   filter(SireID == "162") %>% 
 #   print.data.frame()
@@ -267,7 +268,7 @@ df_anorexia_survival <- left_join(x = tib_death_percent,
 # df_anorexia_survival_sex <- left_join(x = tib_death_percent,
 #                                   y = df_anorexia_sex)
 
-# ANOREXIA plot #############################################
+# 5. ANOREXIA plot ##########################################
 ## basic 1.0 (STAR PLOT)
 df_anorexia_survival %>%
   ggplot(aes(x = anorexia,
@@ -299,10 +300,48 @@ df_anorexia_survival %>%
   # xlim(-0.25,0.25)# xllegend()# xlim(-0.25,0.25)# xlim(-wrap()0.25,0.25)
 
 
-# BRMS MODELING #############################################
+# 6. BRMS MODELING ##########################################
 
+# renaming, restructuring and leveling
 df_brm_ready <- df_moth_wrangel_WF %>% 
-  unite(Dose, Diet, sep = "-", col = "treatment") 
+  mutate(Dose = if_else(Dose == "1",
+                        true = "high",
+                        false = if_else(
+                          Dose == "1/16",
+                          true = "low",
+                          false = if_else(
+                            Dose == "Control",
+                            true = "control",
+                            false = NA
+                            ))),
+         Diet = if_else(Diet == "Good",
+                        true = "standard",
+                        false = "poor",
+                        missing = NA),
+         treatment = interaction(Diet, 
+                                 Dose, 
+                                 sep = "_"),
+         treatment = factor(treatment,
+                            levels = c(
+                              "standard_control",
+                              "standard_low",
+                              "standard_high",
+                              "poor_control",
+                              "poor_low",
+                              "poor_high"
+                            )))
+ # unite(Dose, Diet, sep = "_", col = "treatment") 
+
+
+df_brm_ready<- df_brm_ready %>% 
+  mutate(survival = if_else(Death_bin == "Alive",
+                            true = 1,
+                            false = 0,
+                            missing = NA)) 
+ 
+
+
+
 
 # need to make a time from final weighing to eclosion (pupation) so that i can pick a time frame to restrickt the data by
 
@@ -320,16 +359,10 @@ summary(brm_model_ch)
 
 # same model but the death bin is in binary instaid of charecters
 
-df_brm_ready_sbin<- df_brm_ready %>% 
-  mutate(Survival = if_else(Death_bin == "Alive",
-                            true = 1,
-                            false = 0,
-                            missing = NA)) 
-
 # brm_model_bin <- brm(Survival ~ treatment +
 #                        (treatment - 1 | p | gr(SireID)) +
 #                        (1 | DamID),
-#                      data = df_brm_ready_sbin,
+#                      data = df_brm_ready,
 #                      family = bernoulli(),
 #                      chains = 4, cores = num_cores)
 
@@ -341,7 +374,47 @@ summary(brm_model_bin)
 # I sould ask about this at the next meeting
 
 
-# BRM MODEL BOUND IN TIME ###################################
+# BRMS MODELING (EXPERIMENTAL) ##############################
+
+# 
+bf_surv <- bf(
+  survival ~ 0 + treatment +
+    (0 + treatment | p | gr(SireID)) +
+    (1 | DamID),
+  family = bernoulli()
+)
+#is survival if they died or not
+
+
+#
+bf_food <- bf(
+  Food_Weight_Diff ~ 0 + treatment +
+    (0 + treatment | p | gr(SireID)) +
+    (1 | DamID),
+  family = gaussian()
+)
+# why do we not add a data section
+
+# brm_model_exp <- brm(
+#   bf_surv + bf_food + set_rescor(FALSE),
+#   data = df_brm_ready,
+#   chains = 4,
+#   cores = num_cores,
+#   iter = 4000,
+#   control = list(adapt_delta = 0.95)
+# )
+
+
+plot(brm_model_exp)
+# all good and fuzy
+
+summary(brm_model_exp)
+
+
+
+
+
+# 7. BRM MODEL BOUND IN TIME ################################
 
 # df_brm_ready_dayX
 
@@ -372,87 +445,6 @@ df_brm_ready_day14 %>%
 # remove bad point (triple check sire 162: looks wired)
 # anorexia is not a good lable
 # size points on indeviduals in it 
-
-# # ANALYZING AND ACTING ON BAD VALUE (origin) #########################
-# df_anorexia_survival %>% 
-#   filter(SireID == "162") %>% 
-#   print.data.frame()
-# #there is only one in poor 1 and it died
-# 
-# df_moth_wrangel_WF %>% 
-#   filter(SireID == "162") %>% 
-#   group_by(Larval_wt, Dose, Diet) %>% 
-#   select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
-#   arrange(desc(Food_Weight_Diff))
-# 
-# 
-# df_moth_wrangel_WF %>% 
-#   # filter(SireID == "162") %>% 
-#   group_by(Larval_wt) %>% 
-#   select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
-#   arrange(desc(Food_Weight_Diff))
-# 
-# df_moth_wrangel_WF %>% 
-#   group_by(SireID) %>% 
-#   summarize(Mean_food_diff = mean(Food_Weight_Diff))
-# 
-# 
-# df_moth_wrangel_WF %>% 
-#   group_by(SireID, Dose, Diet) %>% 
-#   filter(SireID == "162") %>% 
-#   summarize(Mean_food_diff = mean(Food_Weight_Diff))
-# 
-# 
-# df_moth_wrangel_WF %>% 
-#   group_by(SireID, Dose, Diet) %>% 
-#   filter(SireID == "162") %>% 
-#   summarize(Mean_food_diff = mean(Food_Weight_Diff)) %>% 
-#   pivot_wider(names_from = Dose,
-#               values_from = Mean_food_diff) %>% 
-#   mutate(anorexia = Control - `1/16`)
-# 
-# df_moth_wrangel_WF %>% 
-#   filter(SireID == "162") %>%
-#   group_by(LarvaID) %>% 
-#   select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
-#   arrange(desc(Food_Weight_Diff))
-# 
-# 
-# df_moth_wrangel_WF %>% 
-#   # filter(SireID == "162") %>%
-#   group_by(LarvaID, Larval_wt) %>% 
-#   select(InitFoodWeight, FinalFoodWeight, Food_Weight_Diff) %>% 
-#   arrange(desc(Food_Weight_Diff))
-# 
-# # CLEAN UP ABOVE AND FILTER OUT THE LarvaID 1555
-# 
-# # removing larva 1555
-# df_moth_wrangel_WF <- df_moth_wrangel_WF %>% 
-#   filter(LarvaID != 1555)
-
-
-
-
-## basic 1.1 
-# df_anorexia_survival_1 %>%
-#   ggplot(aes(x = anorexia,
-#              y = percent_alive,
-#              colour = SireID)) +
-#   geom_point() +
-#   facet_wrap(Diet ~ Dose) +
-#   xlim(-0.25,0.25)
-
-
-
-## with pupa sex as another factor [not a valid comparison as Sex is only found in pupating indeviduals]
-# df_anorexia_survival_sex %>% 
-#   filter(Pupal_sex == c("F", "M")) %>% 
-#   ggplot(aes(x = anorexia,
-#              y = percent_alive,
-#              colour = SireID)) +
-#   geom_point() +
-#   facet_grid(Diet ~ Dose ~ Pupal_sex)
-
 
 
 # PUPAL SURVIVAL PROB #######################################
@@ -707,47 +699,3 @@ str(df_moth_wrangel_pre)
 
 
 
-# brms ##### 
-
-# remove the obs with no food wight
-df_moth_WF <- df_moth_raw %>% 
-  filter(InitFoodWeight != "NA")
-
-# remove the NA from final food wight
-df_moth_WF <- df_moth_WF %>% 
-  filter(FinalFoodWeight != "NA")
-
-# add a new coloum for the the differenc in food wight
-df_moth_WF <- df_moth_WF %>% 
-  mutate(DiffFoodWeight = FinalFoodWeight - InitFoodWeight)
-
-# first beys model
-fit <- brm(DiffFoodWeight ~ Dose, data = df_moth_WF)
-
-plot(fit)
-# there is more loss in the control dose then the 1 dose
-
-bayesplot_grid(
-  pp_check(fit, type = "stat", stat = "mean")
-  )
-
-#dont work when catagorical data (fix???)
-stanplot(fit)
-mcmc_plot(fit)
-
-
-
-# this dose not work in this way, need to understand it better to do it the way we did it before
-# summary(fit)
-# 
-# df_tibb_test <- tibble(Dose = levels(factor(df_moth_WF$Dose)))
-# 
-# preds_matrix_WF <- predict(fit,
-#                            newdata = df_tibb_test,
-#                            int = "c")
-# df_preds_WF <- bind_cols(df_tibb_test,
-#                          as_tibble(preds_matrix_WF))
-# 
-# df_preds_WF %>% 
-#   ggplot(aes(x = Dose)) +
-#   geom_bar()
