@@ -411,10 +411,155 @@ plot(brm_model_exp)
 summary(brm_model_exp)
 
 
+# EXTRACTING THE VARIANCE AND COVARIANCE ####################
+vc <- VarCorr(brm_model_exp, summary = FALSE)
+
+G <- vc$SireID$cov
 
 
+# DEFINE NAMES AS OBJECTS TO REDUCE MISTAKES #################
 
-# 7. BRM MODEL BOUND IN TIME ################################
+dimnames(G)[[2]]
+
+surv_standard_control <- "survival_treatmentstandard_control"
+surv_standard_low <- "survival_treatmentstandard_low"
+surv_standard_high <- "survival_treatmentstandard_high"
+surv_poor_control <- "survival_treatmentpoor_control"
+surv_poor_low <- "survival_treatmentpoor_low"
+surv_poor_high <-"survival_treatmentpoor_high"
+food_standard_control <- "FoodWeightDiff_treatmentstandard_control"
+food_standard_low <- "FoodWeightDiff_treatmentstandard_low"
+food_standard_high <- "FoodWeightDiff_treatmentstandard_high"
+food_poor_control <- "FoodWeightDiff_treatmentpoor_control"
+food_poor_low <- "FoodWeightDiff_treatmentpoor_low"
+food_poor_high <- "FoodWeightDiff_treatmentpoor_high"
+
+
+# Standard diet, low dose #############
+
+cov_Fctrl_Sinf_standard_low <- G[, food_standard_control, surv_standard_low]
+cov_Finf_Sinf_standard_low  <- G[, food_standard_low,     surv_standard_low]
+
+var_Fctrl_standard_low <- G[, food_standard_control, food_standard_control]
+var_Finf_standard_low  <- G[, food_standard_low,     food_standard_low]
+cov_Fctrl_Finf_standard_low <- G[, food_standard_control, food_standard_low]
+
+var_Sinf_standard_low <- G[, surv_standard_low, surv_standard_low]
+
+# differenc in covariance between control and infected feeding
+cov_anorexia_survival_standard_low <-
+  cov_Fctrl_Sinf_standard_low - cov_Finf_Sinf_standard_low
+
+# converts the covarianvece to variance
+var_anorexia_standard_low <-
+  var_Fctrl_standard_low + var_Finf_standard_low - 2 * cov_Fctrl_Finf_standard_low
+
+# computong the genetic corelation
+cor_anorexia_survival_standard_low <-
+  cov_anorexia_survival_standard_low /
+  sqrt(var_anorexia_standard_low * var_Sinf_standard_low)
+
+# Standard diet, high dose ####
+
+cov_Fctrl_Sinf_standard_high <- G[, food_standard_control, surv_standard_high]
+cov_Finf_Sinf_standard_high  <- G[, food_standard_high,    surv_standard_high]
+
+var_Fctrl_standard_high <- G[, food_standard_control, food_standard_control]
+var_Finf_standard_high  <- G[, food_standard_high,    food_standard_high]
+cov_Fctrl_Finf_standard_high <- G[, food_standard_control, food_standard_high]
+
+var_Sinf_standard_high <- G[, surv_standard_high, surv_standard_high]
+
+cov_anorexia_survival_standard_high <-
+  cov_Fctrl_Sinf_standard_high - cov_Finf_Sinf_standard_high
+
+var_anorexia_standard_high <-
+  var_Fctrl_standard_high + var_Finf_standard_high - 2 * cov_Fctrl_Finf_standard_high
+
+cor_anorexia_survival_standard_high <-
+  cov_anorexia_survival_standard_high /
+  sqrt(var_anorexia_standard_high * var_Sinf_standard_high)
+
+# Poor diet, low dose ####
+
+cov_Fctrl_Sinf_poor_low <- G[, food_poor_control, surv_poor_low]
+cov_Finf_Sinf_poor_low  <- G[, food_poor_low,     surv_poor_low]
+
+var_Fctrl_poor_low <- G[, food_poor_control, food_poor_control]
+var_Finf_poor_low  <- G[, food_poor_low,     food_poor_low]
+cov_Fctrl_Finf_poor_low <- G[, food_poor_control, food_poor_low]
+
+var_Sinf_poor_low <- G[, surv_poor_low, surv_poor_low]
+
+cov_anorexia_survival_poor_low <-
+  cov_Fctrl_Sinf_poor_low - cov_Finf_Sinf_poor_low
+
+var_anorexia_poor_low <-
+  var_Fctrl_poor_low + var_Finf_poor_low - 2 * cov_Fctrl_Finf_poor_low
+
+cor_anorexia_survival_poor_low <-
+  cov_anorexia_survival_poor_low /
+  sqrt(var_anorexia_poor_low * var_Sinf_poor_low)
+
+# Poor diet, high dose ####
+
+cov_Fctrl_Sinf_poor_high <- G[, food_poor_control, surv_poor_high]
+cov_Finf_Sinf_poor_high  <- G[, food_poor_high,    surv_poor_high]
+
+var_Fctrl_poor_high <- G[, food_poor_control, food_poor_control]
+var_Finf_poor_high  <- G[, food_poor_high,    food_poor_high]
+cov_Fctrl_Finf_poor_high <- G[, food_poor_control, food_poor_high]
+
+var_Sinf_poor_high <- G[, surv_poor_high, surv_poor_high]
+
+cov_anorexia_survival_poor_high <-
+  cov_Fctrl_Sinf_poor_high - cov_Finf_Sinf_poor_high
+
+var_anorexia_poor_high <-
+  var_Fctrl_poor_high + var_Finf_poor_high - 2 * cov_Fctrl_Finf_poor_high
+
+cor_anorexia_survival_poor_high <-
+  cov_anorexia_survival_poor_high /
+  sqrt(var_anorexia_poor_high * var_Sinf_poor_high)
+
+
+results <- tibble(
+  contrast = c("standard_low", "standard_high", "poor_low", "poor_high"),
+  mean = c(
+    mean(cor_anorexia_survival_standard_low),
+    mean(cor_anorexia_survival_standard_high),
+    mean(cor_anorexia_survival_poor_low),
+    mean(cor_anorexia_survival_poor_high)
+  ),
+  median = c(
+    median(cor_anorexia_survival_standard_low),
+    median(cor_anorexia_survival_standard_high),
+    median(cor_anorexia_survival_poor_low),
+    median(cor_anorexia_survival_poor_high)
+  ),
+  l95 = c(
+    quantile(cor_anorexia_survival_standard_low, 0.025),
+    quantile(cor_anorexia_survival_standard_high, 0.025),
+    quantile(cor_anorexia_survival_poor_low, 0.025),
+    quantile(cor_anorexia_survival_poor_high, 0.025)
+  ),
+  u95 = c(
+    quantile(cor_anorexia_survival_standard_low, 0.975),
+    quantile(cor_anorexia_survival_standard_high, 0.975),
+    quantile(cor_anorexia_survival_poor_low, 0.975),
+    quantile(cor_anorexia_survival_poor_high, 0.975)
+  ),
+  p_gt_0 = c(
+    mean(cor_anorexia_survival_standard_low > 0),
+    mean(cor_anorexia_survival_standard_high > 0),
+    mean(cor_anorexia_survival_poor_low > 0),
+    mean(cor_anorexia_survival_poor_high > 0)
+  )
+)
+
+results
+
+# BRM MODEL BOUND IN TIME ################################
 
 # df_brm_ready_dayX
 
