@@ -459,6 +459,12 @@ cor_anorexia_survival_standard_low <-
   cov_anorexia_survival_standard_low /
   sqrt(var_anorexia_standard_low * var_Sinf_standard_low)
 
+# plot 
+as.data.frame(cor_anorexia_survival_standard_low) %>% 
+  ggplot(aes(x = cor_anorexia_survival_standard_low)) +
+  geom_density()
+
+
 # Standard diet, high dose ####
 
 cov_Fctrl_Sinf_standard_high <- G[, food_standard_control, surv_standard_high]
@@ -479,6 +485,11 @@ var_anorexia_standard_high <-
 cor_anorexia_survival_standard_high <-
   cov_anorexia_survival_standard_high /
   sqrt(var_anorexia_standard_high * var_Sinf_standard_high)
+
+# plot 
+as.data.frame(cor_anorexia_survival_standard_high) %>% 
+  ggplot(aes(x = cor_anorexia_survival_standard_high)) +
+  geom_density()
 
 # Poor diet, low dose ####
 
@@ -501,6 +512,11 @@ cor_anorexia_survival_poor_low <-
   cov_anorexia_survival_poor_low /
   sqrt(var_anorexia_poor_low * var_Sinf_poor_low)
 
+# plot 
+as.data.frame(cor_anorexia_survival_poor_low) %>% 
+  ggplot(aes(x = cor_anorexia_survival_poor_low)) +
+  geom_density()
+
 # Poor diet, high dose ####
 
 cov_Fctrl_Sinf_poor_high <- G[, food_poor_control, surv_poor_high]
@@ -522,6 +538,12 @@ cor_anorexia_survival_poor_high <-
   cov_anorexia_survival_poor_high /
   sqrt(var_anorexia_poor_high * var_Sinf_poor_high)
 
+# plot 
+as.data.frame(cor_anorexia_survival_poor_high) %>% 
+  ggplot(aes(x = cor_anorexia_survival_poor_high)) +
+  geom_density()
+
+# a summary
 
 results <- tibble(
   contrast = c("standard_low", "standard_high", "poor_low", "poor_high"),
