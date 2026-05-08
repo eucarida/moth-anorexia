@@ -1,7 +1,7 @@
 # This script is the main script for my statistical analisys of my bachelors thesis 
 # By: eucarida
 # Created: 2026-03-08
-# Last updated: 2026-04-28
+# Last updated: 2026-05-08
 
 # clean
 rm(list = ls())
@@ -17,6 +17,7 @@ library(grid)
 library(gtable)
 library(beeswarm)
 library(parallel)
+library(ggridges)
 library(brms)
 library(bayesplot)
 library(posterior)
@@ -270,7 +271,9 @@ df_anorexia_survival <- left_join(x = tib_death_percent,
 
 # 5. ANOREXIA plot ##########################################
 ## basic 1.0 (STAR PLOT)
+
 df_anorexia_survival %>%
+  filter(Dose != "Control") %>% 
   ggplot(aes(x = anorexia,
              y = percent_alive,
              colour = SireID,
@@ -395,20 +398,34 @@ bf_food <- bf(
 )
 # why do we not add a data section
 
-# brm_model_exp <- brm(
-#   bf_surv + bf_food + set_rescor(FALSE),
-#   data = df_brm_ready,
-#   chains = 4,
-#   cores = num_cores,
-#   iter = 4000,
-#   control = list(adapt_delta = 0.95)
-# )
+brm_model_exp <- brm(
+  bf_surv + bf_food + set_rescor(FALSE),
+  data = df_brm_ready,
+  chains = 4,
+  cores = num_cores,
+  iter = 4000,
+  control = list(adapt_delta = 0.95)
+)
 
 
 plot(brm_model_exp)
 # all good and fuzy
 
 summary(brm_model_exp)
+
+# extract posterior as data frame
+#   tidy bayse
+brm_post_model_exp <- as_draws_df(brm_model_exp)
+names(brm_post_model_exp)
+
+brm_post_model_exp %>% 
+  select("b_FoodWeightDiff_treatmentstandard_control":"b_FoodWeightDiff_treatmentpoor_high") %>% 
+  pivot_longer("b_FoodWeightDiff_treatmentstandard_control":"b_FoodWeightDiff_treatmentpoor_high",
+             names_to = "treatment",
+             values_to = "cof") %>% 
+  ggplot(aes(y = treatment,
+             x = cof)) +
+  geom_density_ridges()
 
 
 # EXTRACTING THE VARIANCE AND COVARIANCE ####################
@@ -580,6 +597,55 @@ results <- tibble(
 )
 
 results
+
+df_cor_standard_high <- tibble(Diet = "Standard", 
+                               Dose = "High",
+                               cor = cor_anorexia_survival_standard_high)
+
+df_cor_standard_low <- tibble(Diet = "Standard", 
+                               Dose = "Low",
+                               cor = cor_anorexia_survival_standard_low)
+
+df_cor_poor_high <- tibble(Diet = "Poor", 
+                              Dose = "High",
+                              cor = cor_anorexia_survival_poor_high)
+
+df_cor_poor_low <- tibble(Diet = "Poor", 
+                          Dose = "Low",
+                          cor = cor_anorexia_survival_poor_low)
+
+df_cor_bind <- bind_rows(df_cor_standard_high,
+          df_cor_standard_low,
+          df_cor_poor_high,
+          df_cor_poor_low)
+
+
+df_cor_bind %>% 
+  ggplot(aes(y = Diet,
+             x = cor))+
+  geom_density_ridges()+
+  facet_wrap(.~ Dose,
+             ncol = 1)
+
+
+df_cor_bind %>% 
+  ggplot(aes(y = Diet,
+             x = cor,
+             fill = Dose))+
+  geom_density_ridges()
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # BRM MODEL BOUND IN TIME ################################
 
