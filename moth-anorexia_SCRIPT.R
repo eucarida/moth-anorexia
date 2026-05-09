@@ -1,7 +1,7 @@
 # This script is the main script for my statistical analisys of my bachelors thesis 
 # By: eucarida
 # Created: 2026-03-08
-# Last updated: 2026-05-08
+# Last updated: 2026-05-09
 
 # clean
 rm(list = ls())
@@ -423,9 +423,36 @@ brm_post_model_exp %>%
   pivot_longer("b_FoodWeightDiff_treatmentstandard_control":"b_FoodWeightDiff_treatmentpoor_high",
              names_to = "treatment",
              values_to = "cof") %>% 
-  ggplot(aes(y = treatment,
+   ggplot(aes(y = treatment,
              x = cof)) +
   geom_density_ridges()
+
+brm_food_post_model_exp <- brm_post_model_exp %>% 
+  select("b_FoodWeightDiff_treatmentstandard_control":"b_FoodWeightDiff_treatmentpoor_high") %>% 
+  rename(Standard_Control = b_FoodWeightDiff_treatmentstandard_control,
+         Standard_Low = b_FoodWeightDiff_treatmentstandard_low,
+         Standard_High = b_FoodWeightDiff_treatmentstandard_high,
+         Poor_Control = b_FoodWeightDiff_treatmentpoor_control,
+         Poor_Low = b_FoodWeightDiff_treatmentpoor_low,
+         Poor_High = b_FoodWeightDiff_treatmentpoor_high) %>% 
+  pivot_longer("Standard_Control":"Poor_High",
+               names_to = "treatment",
+               values_to = "cof") %>% 
+  mutate(treatment = factor(treatment,
+                            levels = c(
+                              "Standard_Control",
+                              "Poor_Control",
+                              "Standard_Low",
+                              "Poor_Low",
+                              "Standard_High",
+                              "Poor_High")))
+
+brm_food_post_model_exp %>% 
+  ggplot(aes(y = treatment,
+             x = cof)) +
+  geom_density_ridges(aes(fill = treatment))
+
+#^change names of treatments
 
 
 # EXTRACTING THE VARIANCE AND COVARIANCE ####################
@@ -627,7 +654,6 @@ df_cor_bind %>%
   facet_wrap(.~ Dose,
              ncol = 1)
 
-
 df_cor_bind %>% 
   ggplot(aes(y = Diet,
              x = cor,
@@ -635,7 +661,20 @@ df_cor_bind %>%
   geom_density_ridges()
 
 
-
+df_cor_bind %>% 
+  mutate(treatment = interaction(Diet, 
+                                 Dose, 
+                                 sep = "_"), 
+         treatment = factor(treatment,
+                            levels = c("Standard_Low",
+                                       "Standard_High",
+                                       "Poor_Low",
+                                       "Poor_High"))) %>% 
+  ggplot(aes(y = treatment,
+             x = cor)) +
+  geom_density_ridges(aes(fill = Dose)) +
+  geom_vline(xintercept = 0,
+             alpha = 0.3)
 
 
 
