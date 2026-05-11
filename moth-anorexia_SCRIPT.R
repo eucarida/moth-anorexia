@@ -1,7 +1,7 @@
 # This script is the main script for my statistical analisys of my bachelors thesis 
 # By: eucarida
 # Created: 2026-03-08
-# Last updated: 2026-05-09
+# Last updated: 2026-05-11
 
 # clean
 rm(list = ls())
@@ -19,6 +19,7 @@ library(beeswarm)
 library(parallel)
 library(ggridges)
 library(brms)
+library(boot)
 library(bayesplot)
 library(posterior)
 library(tidyverse)
@@ -305,7 +306,7 @@ df_anorexia_survival %>%
 
 # 6. BRMS MODELING ##########################################
 
-# renaming, restructuring and leveling
+# renaming, restructuring and leveling 
 df_brm_ready <- df_moth_wrangel_WF %>% 
   mutate(Dose = if_else(Dose == "1",
                         true = "high",
@@ -341,7 +342,7 @@ df_brm_ready<- df_brm_ready %>%
                             true = 1,
                             false = 0,
                             missing = NA)) 
- 
+ #[894 obs]
 
 
 
@@ -427,6 +428,9 @@ brm_post_model_exp %>%
              x = cof)) +
   geom_density_ridges()
 
+
+# feeding distrobution posterior ############################
+
 brm_food_post_model_exp <- brm_post_model_exp %>% 
   select("b_FoodWeightDiff_treatmentstandard_control":"b_FoodWeightDiff_treatmentpoor_high") %>% 
   rename(Standard_Control = b_FoodWeightDiff_treatmentstandard_control,
@@ -447,12 +451,77 @@ brm_food_post_model_exp <- brm_post_model_exp %>%
                               "Standard_High",
                               "Poor_High")))
 
+brm_food_post_model_exp <- brm_food_post_model_exp %>% 
+  mutate(Dose = if_else(
+    treatment == c("Standard_Control",
+                   "Poor_Control"),
+    true = "Control",
+    false = if_else(
+        treatment == c("Standard_High",
+                       "Poor_High"),
+        true = "High",
+        false = "Low"
+      )
+    )
+  )
+
 brm_food_post_model_exp %>% 
   ggplot(aes(y = treatment,
              x = cof)) +
-  geom_density_ridges(aes(fill = treatment))
+  geom_density_ridges(aes(fill = Dose)) +
+  scale_fill_manual(values = c("palegreen1",
+                               "steelblue1",
+                               "slategray1")) +
+  labs(title = "Distrobution of food consumed",
+       subtitle = "The amount of food consumed depending on treatment") +
+  ylab("Treatment (Diet and dose)") +
+  xlab("Food consumed (g)")
 
-#^change names of treatments
+# survival distrobution posterior ###########################
+
+brm_surv_post_model_exp <- brm_post_model_exp %>% 
+  select("b_survival_treatmentstandard_control":"b_survival_treatmentpoor_high") %>% 
+  rename(Standard_Control = b_survival_treatmentstandard_control,
+         Standard_Low = b_survival_treatmentstandard_low,
+         Standard_High = b_survival_treatmentstandard_high,
+         Poor_Control = b_survival_treatmentpoor_control,
+         Poor_Low = b_survival_treatmentpoor_low,
+         Poor_High = b_survival_treatmentpoor_high) %>% 
+  pivot_longer("Standard_Control":"Poor_High",
+               names_to = "treatment",
+               values_to = "cof") %>% 
+  mutate(treatment = factor(treatment,
+                            levels = c(
+                              "Standard_Control",
+                              "Poor_Control",
+                              "Standard_Low",
+                              "Poor_Low",
+                              "Standard_High",
+                              "Poor_High")))
+
+brm_surv_post_model_exp <- brm_surv_post_model_exp %>% 
+  mutate(Dose = if_else(
+    treatment == c("Standard_Control",
+                   "Poor_Control"),
+    true = "Control",
+    false = if_else(
+      treatment == c("Standard_High",
+                     "Poor_High"),
+      true = "High",
+      false = "Low"
+    )))
+
+brm_surv_post_model_exp %>% 
+  ggplot(aes(y = treatment,
+             x = inv.logit(cof))) +
+  geom_density_ridges(aes(fill = Dose)) +
+  scale_fill_manual(values = c("palegreen1",
+                               "steelblue1",
+                               "slategray1")) +
+  labs(title = "Distrobution of survival",
+       subtitle = "text") +
+  ylab("Treatment (Diet and dose)") +
+  xlab("Survival distrobution")
 
 
 # EXTRACTING THE VARIANCE AND COVARIANCE ####################
@@ -625,6 +694,7 @@ results <- tibble(
 
 results
 
+# ploting the posterior for anorexia and survival
 df_cor_standard_high <- tibble(Diet = "Standard", 
                                Dose = "High",
                                cor = cor_anorexia_survival_standard_high)
@@ -674,7 +744,13 @@ df_cor_bind %>%
              x = cor)) +
   geom_density_ridges(aes(fill = Dose)) +
   geom_vline(xintercept = 0,
-             alpha = 0.3)
+             alpha = 0.3) +
+  scale_fill_manual(values = c("High" = "steelblue1",
+                               "Low" = "slategray1")) +
+  labs(title = "Pathogen-induced anorexia",
+       subtitle = "The genetic correlation of increased survival and reduced feeding") +
+  ylab("Treatment (Diet and dose)") +
+  xlab("Genetic correlation of survival and reduced feeding")
 
 
 
