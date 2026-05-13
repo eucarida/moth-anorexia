@@ -1,7 +1,7 @@
 # This script is the main script for my statistical analisys of my bachelors thesis 
 # By: eucarida
 # Created: 2026-03-08
-# Last updated: 2026-05-11
+# Last updated: 2026-05-12
 
 # clean
 rm(list = ls())
@@ -468,6 +468,9 @@ brm_food_post_model_exp <- brm_food_post_model_exp %>%
 brm_food_post_model_exp %>% 
   ggplot(aes(y = treatment,
              x = cof)) +
+  # geom_density_ridges(aes(y = Dose,
+  #                         x = cof,
+  #                         fill = Dose)) +
   geom_density_ridges(aes(fill = Dose)) +
   scale_fill_manual(values = c("palegreen1",
                                "steelblue1",
@@ -515,13 +518,14 @@ brm_surv_post_model_exp %>%
   ggplot(aes(y = treatment,
              x = inv.logit(cof))) +
   geom_density_ridges(aes(fill = Dose)) +
+  # geom_vline(xintercept = c(0.92,0.65)) +
   scale_fill_manual(values = c("palegreen1",
                                "steelblue1",
                                "slategray1")) +
-  labs(title = "Distrobution of survival",
+  labs(title = "Probebility of survival posterior distrobution",
        subtitle = "text") +
   ylab("Treatment (Diet and dose)") +
-  xlab("Survival distrobution")
+  xlab("Probebility of survival")
 
 
 # EXTRACTING THE VARIANCE AND COVARIANCE ####################
