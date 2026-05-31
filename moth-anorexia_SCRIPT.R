@@ -1,7 +1,7 @@
 # This script is the main script for my statistical analisys of my bachelors thesis 
 # By: eucarida
 # Created: 2026-03-08
-# Last updated: 2026-05-12
+# Last updated: 2026-05-31
 
 # clean
 rm(list = ls())
@@ -258,17 +258,102 @@ df_anorexia_survival <- left_join(x = tib_death_percent,
 #                                   y = df_anorexia_1)
 ## interesting note is that even in comparison to the 1 dose anorexia is never expressed over all
 
-## adding sex as a factor
-# df_anorexia_sex <- df_moth_wrangel_WF %>% 
-#   group_by(SireID, Dose, Diet, Pupal_sex) %>% 
-#   summarize(Mean_food_diff = mean(Food_Weight_Diff)) %>% 
-#   pivot_wider(names_from = Dose,
-#               values_from = Mean_food_diff) %>% 
-#   mutate(anorexia = Control - `1/16`)
-# 
-# 
-# df_anorexia_survival_sex <- left_join(x = tib_death_percent,
-#                                   y = df_anorexia_sex)
+# 4.5 SURVIVAL AND FEEDINF PLOTS ############################
+
+# survival (including before final weighing)
+df_moth_wrangel %>% 
+  filter(FoodWeighing == "Yes") %>% 
+  # summarize(tot_offspring = n())
+  group_by(Dose,Diet) %>% 
+  summarize(tot_offspring = n(),
+            nr_dead_offspring = sum(Death_bin == "Dead"),
+            nr_alive_offspring = sum(Death_bin == "Alive"),
+            percent_alive = nr_alive_offspring / tot_offspring,
+            percent_dead = nr_dead_offspring / tot_offspring) %>% 
+  # print.data.frame()
+  ggplot(aes(y = percent_alive,
+             x = Dose,
+             size = tot_offspring,
+             colour = Dose)) +
+  geom_point() +
+  ylim(0,1) +
+  facet_wrap(.~ Diet) +
+  scale_size_area(max_size = 8) +
+  scale_colour_manual(values = c("steelblue1",
+                               "slategray1",
+                               "palegreen1"))
+
+# diet and feeding
+df_moth_wrangel_WF %>% 
+  group_by(Diet, Dose) %>% 
+  summarize(tot_offspring = n(),
+            mean_larval_wg = mean(Larval_wt),
+            mean_food_diff = mean(Food_Weight_Diff),
+            sdev_wg = sd(Larval_wt),
+            sdev_food = sd(Food_Weight_Diff)) %>%
+  ggplot(aes(y = mean_larval_wg,
+             x = mean_food_diff,
+             colour = Dose,
+             size = tot_offspring)) +
+  geom_point(aes(shape = Diet)) +
+  # geom_errorbar(aes(ymax = mean_larval_wg + sdev_wg,
+  #                     ymin = mean_larval_wg - sdev_wg,
+  #                     xmax = mean_food_diff + sdev_food,
+  #                     xmin = mean_food_diff - sdev_food))+
+  # facet_wrap(.~ Diet) +
+  scale_size_area(max_size = 8,
+                  name = "Nr of indeviduals") +
+  scale_colour_manual(values = c("steelblue1",
+                               "slategray1",
+                               "palegreen1"))
+
+
+df_moth_wrangel_WF %>% 
+  group_by(Diet, Pupal_sex) %>% 
+  filter(Pupal_sex != "intersex?") %>% 
+  summarize(tot_offspring = n(),
+            mean_larval_wg = mean(Larval_wt),
+            mean_food_diff = mean(Food_Weight_Diff),
+            sdev_wg = sd(Larval_wt),
+            sdev_food = sd(Food_Weight_Diff)) %>%
+  ggplot(aes(y = mean_larval_wg,
+             x = mean_food_diff,
+             colour = Pupal_sex,
+             size = tot_offspring)) +
+  geom_point(aes(shape = Diet)) +
+  # geom_errorbar(aes(ymax = mean_larval_wg + sdev_wg,
+  #                     ymin = mean_larval_wg - sdev_wg,
+  #                     xmax = mean_food_diff + sdev_food,
+  #                     xmin = mean_food_diff - sdev_food))+
+  # facet_wrap(.~ Diet) +
+  scale_size_area(max_size = 8,
+                  name = "Nr of indeviduals") +
+  scale_colour_manual(values = c("steelblue1",
+                                 "slategray1",
+                                 "palegreen1"))
+df_moth_wrangel_WF %>% 
+  group_by(Diet,Dose) %>% 
+  # summarize(tot_offspring = n(),
+  #           mean_larval_wg = mean(Larval_wt),
+  #           mean_food_diff = mean(Food_Weight_Diff),
+  #           sdev_wg = sd(Larval_wt),
+  #           sdev_food = sd(Food_Weight_Diff)) %>%
+  ggplot(aes(y = Food_Weight_Diff,
+             x = Dose,
+             colour = Diet)) +
+  geom_boxplot()
+
+
+
+# finding the god dame problem #
+# i found it, we loos a lot of indeviduals...
+# when we filter out the non final feeders # god damit #
+#
+# df_moth_wrangel %>% 
+#   filter(FoodWeighing == "Yes") %>% 
+#   group_by(Dose) %>% 
+#   summarize(tot_offspring = n())
+
 
 # 5. ANOREXIA plot ##########################################
 ## basic 1.0 (STAR PLOT)
@@ -302,6 +387,29 @@ df_anorexia_survival %>%
   ylab("Probobility of survival") +
   xlab("Anorexia (Reduction in feeding is positive value)")
   # xlim(-0.25,0.25)# xllegend()# xlim(-0.25,0.25)# xlim(-wrap()0.25,0.25)
+
+
+# food diff mean
+df_food_mean <- df_moth_wrangel_WF %>%
+  group_by(SireID, Dose, Diet) %>%
+  summarize(Mean_food_diff = mean(Food_Weight_Diff))
+
+df_food_survival <- left_join(x = tib_death_percent,
+                                  y = df_food_mean)
+
+df_food_survival %>%
+  ggplot(aes(y = Mean_food_diff,
+             x = SireID,
+             size = tot_offspring,
+             colour = SireID)) +
+  geom_point(alpha = 0.3) +
+  facet_wrap(Diet ~ Dose) +
+  scale_size_area(max_size = 8) +
+  theme(axis.text.x = element_text(angle = -90,
+                                   hjust = 0,
+                                   vjust = 0.4),
+        legend.direction = "vertical",
+        legend.box = "vertical")
 
 
 # 6. BRMS MODELING ##########################################
@@ -417,6 +525,7 @@ summary(brm_model_exp)
 # extract posterior as data frame
 #   tidy bayse
 brm_post_model_exp <- as_draws_df(brm_model_exp)
+
 names(brm_post_model_exp)
 
 brm_post_model_exp %>% 
@@ -900,154 +1009,4 @@ df_anorexia_lweight_percent %>%
   geom_point()
 
 #############################################################
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# plot (bad stuff, clean later) #############################
-
-
-
-# mean survival per for every sire
-df_wf_sire <- df_moth_wrangel_WF %>% 
-  select(SireID, Death_bin) %>% 
-  group_by(SireID, Death_bin) %>% 
-  count(SireID, name = "nr_offspring")
-
-# just checking that count does what i think it does
-df_temp <- df_moth_wrangel_WF %>% 
-  filter(SireID == 112)
-
-# death data and relations 
-df_wf_sire <- df_wf_sire%>% 
-  pivot_wider(values_from = nr_offspring,
-              names_from = Death_bin) %>% 
-  mutate(tot_offspring = Alive + Dead) %>% 
-  mutate(precent_alive = Alive / tot_offspring,
-         precent_dead = Dead / tot_offspring)
-
-
-# summarise and mean
-df_wf_sire %>% 
-  summarise(Survival_mean = mean(Alive))
-
-mean(x = df_wf_sire$Alive)
-# 60.15385 mean of ofspring alive
-
-
-# filter over mean survial
-df_moth_wrangel_WF %>% 
-  add_count(SireID, name = "nr_offspring") %>% 
-  filter(nr_offspring > 60.15385) %>% 
-  ggplot(aes(x = Food_Weight_Diff,
-             y = Larval_wt,
-             colour = Diet)) +
-  geom_point() +
-  facet_wrap(.~ Dose) +
-  labs(title = "Food consumed and the weigth of larva",
-       subtitle = "over mean of alive offspring from sire",
-       x = "Food consumed (g)",
-       y = "Larva weight (g)")
-  
-
-# no filter
-df_moth_wrangel_WF %>% 
-  # add_count(SireID, name = "nr_offspring") %>% 
-  # filter(nr_offspring > 60.15385) %>% 
-  ggplot(aes(x = Food_Weight_Diff,
-             y = Larval_wt)) +
-  geom_point() +
-  facet_wrap(.~ Dose) +
-  labs(title = "Food consumed and the weigth of larva",
-       x = "Food consumed (g)",
-       y = "Larva weight (g)")
-
-
-
-df_moth_wrangel_WF %>% 
-  ggplot(aes(x = Food_Weight_Diff,
-             y = Larval_wt)) +
-  geom_point() +
-  facet_grid(Death_bin ~ Dose) +
-  labs(title = "Food consumed and the weigth of larva",
-       x = "Food consumed (g)",
-       y = "Larva weight (g)")
-
-
- df_moth_wrangel_WF %>% 
-   ggplot(aes(x = Dose,
-              y = Food_Weight_Diff,
-              fill = Death_bin)) +
-   geom_boxplot() 
-#############################################################
- 
- 
- 
-# lm modles ####
-lm_moth_wf <- lm(Food_Weight_Diff ~ as_factor(Dose) + Death_bin + SireID,
-                 data = df_moth_wrangel_WF)
-
-
-check_model(lm_moth_wf)
-
-
-summary(lm_moth_wf)
-
-df_moth_wrangel_WF %>% 
-  group_by(SireID, Death_bin) %>%
-  add_count(Death_bin) %>% 
-  arrange(SireID) %>% 
-  pivot_wider(names_from = Death_bin,
-              values_from = n) %>% 
-  print.data.frame()
-
-
-# df_moth_wrangel_WF %>%
-#   group_by(SireID, Death_bin) %>%
-#   summarise(Nr_state = sum(Death_bin %in% c("Alive", "Dead")))
- 
-
-# df_moth_wrangel_pre <- 
-df_moth_wrangel_WF %>% 
-  filter(SireID == "110b") %>% 
-  add_count()
-
-
-
-  # add_count(SireID, name = "tot_offspring") %>% 
-  # group_by(SireID, tot_offspring, Food_Weight_Diff) %>% 
-  # mutate(Percent_alive = sum(Death_bin %in% "Alive")/
-  #             tot_offspring) %>% 
-  # # print.data.frame()
-  # ggplot(aes(x = Food_Weight_Diff, 
-  #            y = Percent_alive)) +
-  # geom_point() +
-  # facet_wrap(.~ Death_bin)
-
-
-
-
-
-str(df_moth_wrangel_pre)
-
-
-
-
-
-
-
 
