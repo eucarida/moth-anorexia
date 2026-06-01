@@ -1,7 +1,7 @@
 # This script is the main script for my statistical analisys of my bachelors thesis 
 # By: eucarida
 # Created: 2026-03-08
-# Last updated: 2026-05-31
+# Last updated: 2026-06-01
 
 # clean
 rm(list = ls())
@@ -364,9 +364,9 @@ df_anorexia_survival %>%
              y = percent_alive,
              colour = SireID,
              size = tot_offspring)) +
-  geom_point(alpha = 0.3) +
-  geom_vline(xintercept = 0,
-             alpha = 0.3) +
+  # geom_point(alpha = 0.3) +
+  # geom_vline(xintercept = 0,
+  #            alpha = 0.3) +
   facet_wrap(Diet ~ Dose) +
   scale_size_area(max_size = 8) +
   theme(axis.text.x = element_text(angle = -45,
@@ -412,7 +412,11 @@ df_food_survival %>%
         legend.box = "vertical")
 
 
-# 6. BRMS MODELING ##########################################
+
+
+
+
+# 6. BRMS MODELING SETUP ####################################
 
 # renaming, restructuring and leveling 
 df_brm_ready <- df_moth_wrangel_WF %>% 
@@ -484,6 +488,77 @@ summary(brm_model_bin)
 # the summry is a bit different from brm_modle_ch...
 # maybe that is just becaus of how things ar sampled...
 # I sould ask about this at the next meeting
+
+
+
+
+
+# PHENOTYPIC PLOTS ##########################################
+
+# feeding
+df_brm_ready %>% 
+  filter(treatment == c("standard_low",
+                        "standard_control",
+                        "standard_high")) %>%
+  mutate(treatment = case_when(
+           treatment == "standard_low" ~ "Standard diet & Low dose",
+           treatment == "standard_control" ~ "Standard diet & Control",
+           treatment == "standard_high" ~ "Standard diet & High dose"),
+         treatment = factor(treatment,
+                            levels = c(
+                              "Standard diet & Control",
+                              "Standard diet & Low dose",
+                              "Standard diet & High dose"))) %>%
+  ggplot(aes(y = Food_Weight_Diff,
+             x = treatment,
+             fill = treatment)) +
+  geom_violin(trim = F) +
+  ylim(0,1) +
+  scale_fill_manual(values = c("palegreen1",
+                               "slategray1",
+                               "steelblue1"),
+                    guide = NULL) +
+  labs(x = "Treatment",
+       y = "Feeding (g)",
+       title = "Feeding in standard diet and all doses")
+
+# survival
+df_brm_ready %>% 
+  filter(treatment == c("standard_low",
+                        "standard_control",
+                        "standard_high")) %>%
+  group_by(treatment) %>% 
+  summarize(tot_offspring = n(),
+            nr_dead_offspring = sum(Death_bin == "Dead"),
+            nr_alive_offspring = sum(Death_bin == "Alive"),
+            percent_alive = nr_alive_offspring / tot_offspring,
+            percent_dead = nr_dead_offspring / tot_offspring) %>% 
+  mutate(treatment = case_when(
+    treatment == "standard_low" ~ "Standard diet & Low dose",
+    treatment == "standard_control" ~ "Standard diet & Control",
+    treatment == "standard_high" ~ "Standard diet & High dose"),
+    treatment = factor(treatment,
+                       levels = c(
+                         "Standard diet & Control",
+                         "Standard diet & Low dose",
+                         "Standard diet & High dose"))) %>%
+  # print.data.frame()
+  ggplot(aes(y = percent_alive,
+             x = treatment,
+             size = tot_offspring,
+             colour = treatment)) +
+  geom_point() +
+  ylim(0,1) +
+  scale_size_area(max_size = 8, guide = NULL) +
+  scale_colour_manual(values = c("palegreen1",
+                                 "slategray1",
+                                 "steelblue1"),
+                      guide = NULL) +
+  labs(x = "Treatment",
+       y = "Survival (%)",
+       title = "The percent survival for standard diet treatments")
+
+  
 
 
 # BRMS MODELING (EXPERIMENTAL) ##############################
@@ -627,7 +702,7 @@ brm_surv_post_model_exp %>%
   ggplot(aes(y = treatment,
              x = inv.logit(cof))) +
   geom_density_ridges(aes(fill = Dose)) +
-  # geom_vline(xintercept = c(0.92,0.65)) +
+  # # geom_vline(xintercept = c(0.92,0.65)) +
   scale_fill_manual(values = c("palegreen1",
                                "steelblue1",
                                "slategray1")) +
@@ -852,7 +927,19 @@ df_cor_bind %>%
                             levels = c("Standard_Low",
                                        "Standard_High",
                                        "Poor_Low",
-                                       "Poor_High"))) %>% 
+                                       "Poor_High")),
+         treatment = case_when(
+           treatment == "Standard_Low" ~ "Standard diet & Low dose",
+           treatment == "Standard_High" ~ "Standard diet & High dose",
+           treatment == "Poor_Low" ~ "Poor diet & Low dose",
+           treatment == "Poor_High" ~ "Poor diet & High dose"),
+         treatment = factor(treatment,
+                            levels = c(
+                              "Standard diet & Low dose",
+                              "Standard diet & High dose",
+                              "Poor diet & Low dose",
+                              "Poor diet & High dose"))) %>% 
+  filter(treatment == "Standard diet & Low dose") %>%
   ggplot(aes(y = treatment,
              x = cor)) +
   geom_density_ridges(aes(fill = Dose)) +
@@ -860,6 +947,7 @@ df_cor_bind %>%
              alpha = 0.3) +
   scale_fill_manual(values = c("High" = "steelblue1",
                                "Low" = "slategray1")) +
+  xlim(-1,1) +
   labs(title = "Pathogen-induced anorexia",
        subtitle = "The genetic correlation of increased survival and reduced feeding") +
   ylab("Treatment (Diet and dose)") +
